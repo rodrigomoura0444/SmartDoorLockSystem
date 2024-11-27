@@ -1,17 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
-// Define max attempts and password length
+
 #define MAX_ATTEMPTS 3
 #define PASSWORD_LENGTH 20
 #define LOG_FILE "data/access_log.txt"
 
-// Function declarations
+// Allowed access hours
+#define ALLOWED_START_HOUR 8
+#define ALLOWED_END_HOUR 20
+
+
 void setPassword();
 int authenticate();
 void logAttempt(const char *status);
 void menu();
+int isAccessAllowed();
 
 int main() {
     printf("Welcome to the Smart Door Lock System!\n");
@@ -22,6 +28,10 @@ int main() {
 // Menu for user actions
 void menu() {
     int choice, attempts = 0;
+
+
+
+
 
     while (1) {
         printf("\n--- MENU ---\n");
@@ -36,6 +46,11 @@ void menu() {
             setPassword();
             break;
         case 2:
+            if (!isAccessAllowed()) {
+                printf("Access is only allowed between %d:00 and %d:00.\n", ALLOWED_START_HOUR, ALLOWED_END_HOUR);
+                logAttempt("Access Denied - Out of Hours");
+                break;
+            }
             if (authenticate()) {
                 printf("Access Granted. Welcome!\n");
                 logAttempt("Success");
@@ -77,7 +92,7 @@ void setPassword() {
     printf("Password updated successfully.\n");
 }
 
-// Function to authenticate the user
+
 int authenticate() {
     FILE *file = fopen("data/password.txt", "r");
     if (!file) {
@@ -108,4 +123,16 @@ void logAttempt(const char *status) {
 
     fprintf(logFile, "Attempt: %s\n", status);
     fclose(logFile);
+}
+
+// Function to check if access is allowed based on the current time
+int isAccessAllowed() {
+    time_t now = time(NULL);
+    struct tm *currentTime = localtime(&now);
+
+    int currentHour = currentTime->tm_hour;
+    if (currentHour >= ALLOWED_START_HOUR && currentHour < ALLOWED_END_HOUR) {
+        return 1;
+    }
+    return 0;
 }
