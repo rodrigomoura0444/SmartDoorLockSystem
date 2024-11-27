@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <unistd.h>  // For sleep()
 
 #define MAX_ATTEMPTS 3
 #define PASSWORD_LENGTH 20
@@ -12,12 +12,16 @@
 #define ALLOWED_START_HOUR 8
 #define ALLOWED_END_HOUR 20
 
+// Max failed attempts before lockout
+#define MAX_FAILED_ATTEMPTS 3
+int failedAttempts = 0;  // Track failed attempts
 
 void setPassword();
 int authenticate();
 void logAttempt(const char *status);
 void menu();
 int isAccessAllowed();
+void changePassword();
 
 int main() {
     printf("Welcome to the Smart Door Lock System!\n");
@@ -29,15 +33,12 @@ int main() {
 void menu() {
     int choice, attempts = 0;
 
-
-
-
-
     while (1) {
         printf("\n--- MENU ---\n");
         printf("1. Set Password\n");
         printf("2. Authenticate\n");
-        printf("3. Exit\n");
+        printf("3. Change Password\n");  // New option for changing password
+        printf("4. Exit\n");
         printf("Choose an option: ");
         scanf("%d", &choice);
 
@@ -54,18 +55,23 @@ void menu() {
             if (authenticate()) {
                 printf("Access Granted. Welcome!\n");
                 logAttempt("Success");
+                failedAttempts = 0;  // Reset failed attempts after success
             } else {
-                attempts++;
+                failedAttempts++;
                 logAttempt("Failure");
-                if (attempts >= MAX_ATTEMPTS) {
-                    printf("Too many failed attempts! Security Alert triggered!\n");
-                    exit(1);
+                if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+                    printf("Too many failed attempts! Locking system for 10 seconds.\n");
+                    sleep(10);  // Lockout for 10 seconds
+                    failedAttempts = 0;  // Reset failed attempts after lockout
                 } else {
                     printf("Access Denied. Try Again.\n");
                 }
             }
             break;
         case 3:
+            changePassword();  // Call changePassword function
+            break;
+        case 4:
             printf("Exiting the system. Goodbye!\n");
             exit(0);
         default:
@@ -92,7 +98,7 @@ void setPassword() {
     printf("Password updated successfully.\n");
 }
 
-
+// Function to authenticate the user
 int authenticate() {
     FILE *file = fopen("data/password.txt", "r");
     if (!file) {
@@ -135,4 +141,14 @@ int isAccessAllowed() {
         return 1;
     }
     return 0;
+}
+
+// Function to change the password
+void changePassword() {
+    if (authenticate()) {
+        setPassword();  // Reuse the setPassword function
+        printf("Password successfully changed.\n");
+    } else {
+        printf("Authentication failed. Cannot change password.\n");
+    }
 }
