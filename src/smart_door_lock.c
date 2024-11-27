@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>  // For sleep()
+
 
 #define MAX_ATTEMPTS 3
 #define PASSWORD_LENGTH 20
@@ -22,6 +22,7 @@ void logAttempt(const char *status);
 void menu();
 int isAccessAllowed();
 void changePassword();
+int faceRecognitionAuthenticate();
 
 int main() {
     printf("Welcome to the Smart Door Lock System!\n");
@@ -36,9 +37,10 @@ void menu() {
     while (1) {
         printf("\n--- MENU ---\n");
         printf("1. Set Password\n");
-        printf("2. Authenticate\n");
-        printf("3. Change Password\n");  // New option for changing password
-        printf("4. Exit\n");
+        printf("2. Authenticate with Password\n");
+        printf("3. Authenticate with Face Recognition\n");  // New option for Face Recognition
+        printf("4. Change Password\n");
+        printf("5. Exit\n");
         printf("Choose an option: ");
         scanf("%d", &choice);
 
@@ -69,9 +71,23 @@ void menu() {
             }
             break;
         case 3:
-            changePassword();  // Call changePassword function
+            if (!isAccessAllowed()) {
+                printf("Access is only allowed between %d:00 and %d:00.\n", ALLOWED_START_HOUR, ALLOWED_END_HOUR);
+                logAttempt("Access Denied - Out of Hours");
+                break;
+            }
+            if (faceRecognitionAuthenticate()) {
+                printf("Access Granted via Face Recognition. Welcome!\n");
+                logAttempt("Success");
+            } else {
+                logAttempt("Failure - Face Recognition");
+                printf("Access Denied. Face not recognized.\n");
+            }
             break;
         case 4:
+            changePassword();  // Call changePassword function
+            break;
+        case 5:
             printf("Exiting the system. Goodbye!\n");
             exit(0);
         default:
@@ -98,7 +114,7 @@ void setPassword() {
     printf("Password updated successfully.\n");
 }
 
-// Function to authenticate the user
+// Function to authenticate the user with password
 int authenticate() {
     FILE *file = fopen("data/password.txt", "r");
     if (!file) {
@@ -118,6 +134,7 @@ int authenticate() {
     else
         return 0;
 }
+
 
 // Function to log access attempts
 void logAttempt(const char *status) {
